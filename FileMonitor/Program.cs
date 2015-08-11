@@ -12,11 +12,18 @@ namespace FileMonitor
     {
         static void Main(string[] args)
         {
-            FileMonitor fm = new FileMonitor();
-            fm.Run();
+            try
+            {
+                FileMonitor fm = new FileMonitor();
+                fm.Run();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine("Press any key to continue....");
+                Console.ReadKey();
+            }
 
-            //Console.WriteLine(string.Format(@"{0:yyyyMMdd}", DateTime.Now));
-            //Console.ReadKey();
         }
     }
 
@@ -24,6 +31,7 @@ namespace FileMonitor
     {
         private DirectoryInfo root;
         private StringBuilder output;
+        private string outFile;
 
         public FileMonitor()
         {
@@ -32,15 +40,23 @@ namespace FileMonitor
             string folderName = ConfigurationManager.AppSettings["folderPath"];
             root = new DirectoryInfo(folderName);
 
+            string outputPath = ConfigurationManager.AppSettings["outputPath"];
+            string outputName = ConfigurationManager.AppSettings["outputName"];
+            string outputExtension = ConfigurationManager.AppSettings["outputExtension"];
+
+            this.outFile = string.Format(@"{0}{1}.{2:yyyyMMdd}.{3}", outputPath, outputName, DateTime.Now, outputExtension);
         }
 
         //Main method of class
         //others is private
         public void Run()
         {
-            output.AppendLine(string.Format(@"{0:0.0} MB", root.EnumerateFiles("*", SearchOption.AllDirectories).Sum(fi => fi.Length) / 1000.0 / 1000.0));
+            
+            output.AppendLine(string.Format(@"Total size: {0:0.0} MB", root.EnumerateFiles("*", SearchOption.AllDirectories).Sum(fi => fi.Length) / 1000.0 / 1000.0));
             Scan();
             WriteToFile();
+
+            System.Diagnostics.Process.Start(this.outFile);
         }
 
         private void Scan()
@@ -56,8 +72,7 @@ namespace FileMonitor
 
             foreach (var dir in dirs)
             {
-                output.AppendLine(delimiter);
-
+                //output.AppendLine(delimiter);
                 output.AppendLine(dir.DirInfo.Name);
                 ScanAllFilesInFolder(dir.DirInfo);
 
@@ -90,19 +105,13 @@ namespace FileMonitor
 
                 string folderName = fi.Directory.Name;
                 string txt = string.Format(@"{0}\{1}\{2}", fi.Directory.Parent.Name, folderName, fi.Name);
-                txt = string.Format(@"{0}{1}{2}{3}{4:00.00}", txt, tab, fi.LastWriteTime, tab, fi.Length/1000.0/1000.0);
+                txt = string.Format(@"{0}{1}{2}{3}{4:00.00}MB", txt, tab, fi.LastWriteTime, tab, fi.Length/1000.0/1000.0);
                 this.output.AppendLine(txt);
             }
         }
 
         private void WriteToFile()
         {
-            string outputPath = ConfigurationManager.AppSettings["outputPath"];
-            string outputName = ConfigurationManager.AppSettings["outputName"];
-            string outputExtension = ConfigurationManager.AppSettings["outputExtension"];
-
-            string outFile = string.Format(@"{0}{1}.{2:yyyyMMdd}.{3}", outputPath, outputName, DateTime.Now, outputExtension);
-
             if (File.Exists(outFile))
             {
                 File.Delete(outFile);

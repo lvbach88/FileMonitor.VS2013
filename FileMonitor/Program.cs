@@ -88,7 +88,7 @@ namespace FileMonitor
             var excludes = ConfigurationManager.AppSettings["excludes"].Split(';');
 
             var files = from file in dir.EnumerateFiles("*", SearchOption.AllDirectories)
-                        orderby file.LastWriteTime descending
+                        orderby file.Directory.Name descending, file.LastWriteTime descending
                         select new 
                         {
                             FileInformation = file,
@@ -105,7 +105,7 @@ namespace FileMonitor
 
                 string folderName = fi.Directory.Name;
                 string txt = string.Format(@"{0}\{1}\{2}", fi.Directory.Parent.Name, folderName, fi.Name);
-                txt = string.Format(@"{0}{1}{2}{3}{4:00.00}MB", txt, tab, fi.LastWriteTime, tab, fi.Length/1000.0/1000.0);
+                txt = string.Format(@"{0}{1}{2:yyyyMMdd}{3}{4:000.000}KB", txt, tab, fi.LastWriteTime, tab, fi.Length / 1000.0);
                 this.output.AppendLine(txt);
             }
         }

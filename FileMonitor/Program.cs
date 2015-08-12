@@ -16,6 +16,7 @@ namespace FileMonitor
             {
                 FileMonitor fm = new FileMonitor();
                 fm.Run();
+                System.Diagnostics.Process.Start(fm.OutFile);
             }
             catch (Exception e)
             {
@@ -32,6 +33,19 @@ namespace FileMonitor
         private DirectoryInfo root;
         private StringBuilder output;
         private string outFile;
+
+        public string OutFile
+        {
+            get
+            {
+                return outFile;
+            }
+
+            private set
+            {
+                outFile = value;
+            }
+        }
 
         public FileMonitor()
         {
@@ -51,18 +65,15 @@ namespace FileMonitor
         //others is private
         public void Run()
         {
-            
             output.AppendLine(string.Format(@"Total size: {0:0.0} MB", root.EnumerateFiles("*", SearchOption.AllDirectories).Sum(fi => fi.Length) / 1000.0 / 1000.0));
             Scan();
             WriteToFile();
-
-            System.Diagnostics.Process.Start(this.outFile);
         }
 
         private void Scan()
         {
             string delimiter = ConfigurationManager.AppSettings["delimiter"];
-
+            string teachers = ConfigurationManager.AppSettings["teachers"];
             var dirs = from dir in root.EnumerateDirectories()
                        orderby dir.Name ascending
                        select new
@@ -72,12 +83,17 @@ namespace FileMonitor
 
             foreach (var dir in dirs)
             {
-                //output.AppendLine(delimiter);
-                output.AppendLine(dir.DirInfo.Name);
-                ScanAllFilesInFolder(dir.DirInfo);
+                if (teachers.ToLower().Equals("all")
+                    || teachers.Split(';').Contains(dir.DirInfo.Name))
+                {
+                    //output.AppendLine(delimiter);
+                    output.AppendLine(dir.DirInfo.Name);
+                    ScanAllFilesInFolder(dir.DirInfo);
 
-                output.AppendLine(delimiter);
-                output.AppendLine();
+                    output.AppendLine(delimiter);
+                    output.AppendLine();
+                }
+                
             }
         }
 
@@ -104,7 +120,8 @@ namespace FileMonitor
                 }
 
                 string folderName = fi.Directory.Name;
-                string txt = string.Format(@"{0}\{1}\{2}", fi.Directory.Parent.Name, folderName, fi.Name);
+                //string txt = string.Format(@"{0}\{1}\{2}", fi.Directory.Parent.Name, folderName, fi.Name);
+                string txt = string.Format(@"{0}", fi.FullName);
                 txt = string.Format(@"{0}{1}{2:yyyyMMdd}{3}{4:000.000}KB", txt, tab, fi.LastWriteTime, tab, fi.Length / 1000.0);
                 this.output.AppendLine(txt);
             }

@@ -65,9 +65,49 @@ namespace FileMonitor
         //others is private
         public void Run()
         {
-            output.AppendLine(string.Format(@"Total size: {0:0.0} MB", root.EnumerateFiles("*", SearchOption.AllDirectories).Sum(fi => fi.Length) / 1000.0 / 1000.0));
+            output.AppendLine("Start of quick check!!!");
+
+            QuickCheck();
+
+            output.AppendLine("End of quick check!!!");
+            output.AppendLine();
+            output.AppendLine();
+            output.AppendLine("Start of Scan!!!");
+
             Scan();
+
+            output.AppendLine("End of Scan!!!");
+            output.AppendLine();
+            output.AppendLine();
+
             WriteToFile();
+        }
+
+        private void QuickCheck()
+        {
+            // Total size
+            output.AppendLine(string.Format(@"Total size: {0:0.0} MB", root.EnumerateFiles("*", SearchOption.AllDirectories).Sum(fi => fi.Length) / 1000.0 / 1000.0));
+
+            //File exceeds size limit
+            long fileSizeLimit;
+            if (!long.TryParse(ConfigurationManager.AppSettings["fileSizeLimit"],out fileSizeLimit))
+            {
+                throw new Exception("Error reading File Size Limit");
+            }
+
+            var files = from file in root.EnumerateFiles("*", SearchOption.AllDirectories)
+                        where file.Length > fileSizeLimit * 1000 * 1000
+                        select new
+                        {
+                            FileInformation = file,
+                        };
+
+            output.AppendLine("File exceeding 10 MB!");
+            foreach (var file in files)
+            {
+                output.AppendLine(string.Format(@"{0}", file.FileInformation.FullName));
+            }
+
         }
 
         private void Scan()
@@ -93,7 +133,7 @@ namespace FileMonitor
                     output.AppendLine(delimiter);
                     output.AppendLine();
                 }
-                
+
             }
         }
 
@@ -105,7 +145,7 @@ namespace FileMonitor
 
             var files = from file in dir.EnumerateFiles("*", SearchOption.AllDirectories)
                         orderby file.Directory.Name descending, file.LastWriteTime descending
-                        select new 
+                        select new
                         {
                             FileInformation = file,
                         };
